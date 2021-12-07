@@ -1,11 +1,11 @@
 package com.miaosha.controller;
 
+import com.alibaba.druid.util.StringUtils;
 import com.miaosha.error.BusinessException;
 import com.miaosha.error.EmBusinessError;
 import com.miaosha.response.CommonReturnType;
 import com.miaosha.service.OrderService;
 import com.miaosha.service.model.UserModel;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
@@ -37,11 +37,8 @@ public class OrderController extends BaseController {
         if (StringUtils.isEmpty(token)) {
             throw new BusinessException(EmBusinessError.USER_LOGIN_FAIL, "用户未登录");
         }
-        UserModel userModel = (UserModel) redisTemplate.opsForValue().get(token);
-        if (userModel == null) {
-            throw new BusinessException(EmBusinessError.USER_LOGIN_FAIL, "用户未登录");
-        }
 
+        UserModel userModel = (UserModel) redisTemplate.opsForValue().get(token);
         /*Boolean isLogin = (Boolean) httpServletRequest.getSession().getAttribute("IS_LOGIN");
         if (isLogin == null || !isLogin.booleanValue()) {
             throw new BusinessException(EmBusinessError.USER_LOGIN_FAIL, "用户未登录");
