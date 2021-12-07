@@ -9,6 +9,7 @@ import com.miaosha.service.UserService;
 import com.miaosha.service.model.UserModel;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import sun.misc.BASE64Encoder;
@@ -18,6 +19,8 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Controller("user")
 @RequestMapping("/user")
@@ -36,6 +39,9 @@ public class UserController extends BaseController {
     @Autowired
     private HttpServletRequest httpServletRequest;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
     // 用户登录接口
     @RequestMapping(value = "/login", method = RequestMethod.POST, consumes = CONTENT_TYPE_FORMED)
     @ResponseBody
@@ -52,10 +58,21 @@ public class UserController extends BaseController {
         UserModel userModel = userService.validateLogin(telphone, this.encodeByMd5(password));
 
         // 将登录凭证加入到用户登录成功的session中
-        this.httpServletRequest.getSession().setAttribute("IS_LOGIN", true);
-        this.httpServletRequest.getSession().setAttribute("LOGIN_USER", userModel);
 
-        return CommonReturnType.create(null);
+        // 修改成若用户登录验证成功后将对应的登录信息和登录凭证一起存入redis中
+        // 生成登录凭证 token
+        String uuidToken = UUID.randomUUID().toString();
+        uuidToken = uuidToken.replace("-", "");
+
+        // 建立token和用户登录态之间的联系
+        redisTemplate.opsForValue().set(uuidToken, userModel);
+        redisTemplate.expire(uuidToken, 1, TimeUnit.HOURS);
+
+//        this.httpServletRequest.getSession().setAttribute("IS_LOGIN", true);
+//        this.httpServletRequest.getSession().setAttribute("LOGIN_USER", userModel);
+
+        // 下发token
+        return CommonReturnType.create(uuidToken);
     }
 
     // 用户注册接口
