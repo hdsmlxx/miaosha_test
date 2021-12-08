@@ -22,8 +22,12 @@
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
   </properties>
-
   <dependencies>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>18.0 </version>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-web</artifactId>
@@ -187,6 +191,18 @@
           <source>8</source>
           <target>8</target>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-maven-plugin</artifactId>
+      <executions>
+        <execution>
+          <goals>
+            <goal>repackage</goal>
+            <goal>build-info</goal>
+          </goals>
+        </execution>
+      </executions>
       </plugin>
     </plugins>
 

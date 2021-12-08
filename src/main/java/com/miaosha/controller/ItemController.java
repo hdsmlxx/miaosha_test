@@ -4,6 +4,7 @@ import com.miaosha.controller.viewobject.ItemVO;
 import com.miaosha.error.BusinessException;
 import com.miaosha.error.EmBusinessError;
 import com.miaosha.response.CommonReturnType;
+import com.miaosha.service.CacheService;
 import com.miaosha.service.ItemService;
 import com.miaosha.service.impl.ItemServiceImpl;
 import com.miaosha.service.model.ItemModel;
@@ -12,11 +13,13 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -32,6 +35,12 @@ public class ItemController extends BaseController {
 
     @Autowired
     private ItemService itemService;
+
+    @Autowired
+    private CacheService cacheService;
+
+    @Autowired
+    RedisTemplate redisTemplate;
 
     @RequestMapping(value = "/create", method = RequestMethod.POST, consumes = CONTENT_TYPE_FORMED)
     @ResponseBody
@@ -63,10 +72,27 @@ public class ItemController extends BaseController {
         if (id == null) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR);
         }
-        ItemModel itemModel = itemService.getItemById(id);
+
+        ItemModel itemModel = null;
+        //先取本地缓存
+        itemModel = (ItemModel) cacheService.getFromCommonCache("item_" + id);
 
         if (itemModel == null) {
-            throw new BusinessException(EmBusinessError.ITEM_NOT_EXIST);
+            // 使用redis，根据商品的id到redis中获取
+            itemModel = (ItemModel) redisTemplate.opsForValue().get("item_" + id);
+            System.out.println("查询redis缓存");
+
+            // 若redis内不存在对应的itemModel，则访问下游service
+            if (itemModel == null) {
+                System.out.println("查询数据库");
+                itemModel = itemService.getItemById(id);
+                //设置itemModel到redis内
+                redisTemplate.opsForValue().set("item_" + id, itemModel);
+                // 设置缓存时间
+                redisTemplate.expire("item_" + id, 10, TimeUnit.MINUTES);
+            }
+            //设置itemModel到本地缓存中
+            cacheService.setCommonCache("item_" + id, itemModel);
         }
 
         ItemVO itemVO = convertFromItemModel(itemModel);
