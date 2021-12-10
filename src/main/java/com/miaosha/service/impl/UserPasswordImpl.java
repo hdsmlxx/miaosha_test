@@ -5,7 +5,7 @@ import com.miaosha.dataobject.UserPasswordDO;
 import com.miaosha.service.UserPasswordService;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class UserPasswordImp implements UserPasswordService {
+public class UserPasswordImpl implements UserPasswordService {
 
     @Autowired
     private UserPasswordDOMapper userPasswordDOMapper;
