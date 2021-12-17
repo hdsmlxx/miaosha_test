@@ -7,7 +7,9 @@ import java.math.BigDecimal;
 
 public class PromoModel implements Serializable {
     private Integer id;
-    // 秒杀活动状态：1表示未开始；2表示在进行；3表示已结束
+    /**
+     * 秒杀活动状态：1表示未开始；2表示在进行；3表示已结束
+     */
     private Integer status;
     private DateTime startDate;
     private DateTime endDate;

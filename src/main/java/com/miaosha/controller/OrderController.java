@@ -31,7 +31,8 @@ public class OrderController extends BaseController {
     @RequestMapping(value = "/createOrder", method = RequestMethod.POST, consumes = CONTENT_TYPE_FORMED)
     @ResponseBody
     public CommonReturnType createOrder(@RequestParam(name = "itemId") Integer itemId,
-                                        @RequestParam(name = "amount") Integer amount) throws BusinessException {
+                                        @RequestParam(name = "amount") Integer amount,
+                                        @RequestParam(name = "promoId", required = false) Integer promoId) throws BusinessException {
         // 判断用户是否登录
         String token = httpServletRequest.getParameterMap().get("token")[0];
         if (StringUtils.isEmpty(token)) {
@@ -46,7 +47,7 @@ public class OrderController extends BaseController {
         // 执行相应的service
         UserModel userModel = (UserModel) httpServletRequest.getSession().getAttribute("LOGIN_USER");*/
 
-        orderService.createOrder(userModel.getId(), itemId, amount);
+        orderService.createOrder(userModel.getId(), promoId, itemId, amount);
 
         return CommonReturnType.create(null);
     }
