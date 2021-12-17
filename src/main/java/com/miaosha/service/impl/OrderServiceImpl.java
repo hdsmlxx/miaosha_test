@@ -56,7 +56,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         //校验活动信息
-        if (promoId != null) {
+        if (promoId != null && itemModel.getPromoModel() != null) {
             //(1)校验对应活动是否存在这个适用商品
             if (promoId.intValue() != itemModel.getPromoModel().getId()) {
                 throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "活动信息不存在");
