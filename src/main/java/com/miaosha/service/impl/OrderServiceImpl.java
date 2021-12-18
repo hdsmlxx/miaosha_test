@@ -6,6 +6,7 @@ import com.miaosha.dataobject.OrderDO;
 import com.miaosha.dataobject.SequenceDO;
 import com.miaosha.error.BusinessException;
 import com.miaosha.error.EmBusinessError;
+import com.miaosha.mq.MqProducer;
 import com.miaosha.service.ItemService;
 import com.miaosha.service.OrderService;
 import com.miaosha.service.UserService;
@@ -37,16 +38,23 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private SequenceDOMapper sequenceDOMapper;
 
+    @Autowired
+    private MqProducer producer;
+
     @Override
     @Transactional
     public OrderModel createOrder(Integer userId, Integer promoId, Integer itemId, Integer amount) throws BusinessException {
         // 校验下单状态：商品是否存在，用户是否合法，购买数量是否正确
-        ItemModel itemModel = itemService.getItemById(itemId);
+//        ItemModel itemModel = itemService.getItemById(itemId);
+
+        // 从缓存中获取 itemModel
+        ItemModel itemModel = itemService.getItemByIdInCache(itemId);
         if (itemModel == null) {
             throw new BusinessException(EmBusinessError.ITEM_NOT_EXIST);
         }
 
-        UserModel userModel = userService.getUserById(userId);
+//        UserModel userModel = userService.getUserById(userId);
+        UserModel userModel = userService.getUserByIdInCache(userId);
         if (userModel == null) {
             throw new BusinessException(EmBusinessError.USER_NOT_EXIST);
         }
@@ -70,8 +78,6 @@ public class OrderServiceImpl implements OrderService {
         if (!result) {
             throw new BusinessException(EmBusinessError.STOCK_NOT_ENOUGH);
         }
-        // 增加商品销量
-        itemService.increaseSales(itemId, amount);
 
         // 落单
         OrderModel orderModel = new OrderModel();
@@ -79,7 +85,7 @@ public class OrderServiceImpl implements OrderService {
         orderModel.setUserId(userId);
         orderModel.setItemId(itemId);
         orderModel.setAmount(amount);
-        if (promoId != null) {
+        if (promoId != null && itemModel.getPromoModel() != null) {
             orderModel.setItemPrice(itemModel.getPromoModel().getPromoPrice());
         } else {
             orderModel.setItemPrice(itemModel.getPrice());
@@ -90,6 +96,9 @@ public class OrderServiceImpl implements OrderService {
 
         OrderDO orderDO = convertFromModel(orderModel);
         orderDOMapper.insertSelective(orderDO);
+
+        // 增加商品销量
+        itemService.increaseSales(itemId, amount);
 
         // 返回前端
 

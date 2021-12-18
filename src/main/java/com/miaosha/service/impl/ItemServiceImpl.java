@@ -6,6 +6,7 @@ import com.miaosha.dataobject.ItemDO;
 import com.miaosha.dataobject.ItemStockDO;
 import com.miaosha.error.BusinessException;
 import com.miaosha.error.EmBusinessError;
+import com.miaosha.mq.MqProducer;
 import com.miaosha.service.ItemService;
 import com.miaosha.service.PromoService;
 import com.miaosha.service.model.ItemModel;
@@ -14,10 +15,12 @@ import com.miaosha.validator.ValidationResult;
 import com.miaosha.validator.ValidatorImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -39,6 +42,12 @@ public class ItemServiceImpl implements ItemService {
 
     @Autowired
     private PromoServiceImpl promoService;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
+
+    @Autowired
+    private MqProducer producer;
 
     @Override
     @Transactional
@@ -125,13 +134,35 @@ public class ItemServiceImpl implements ItemService {
         return itemModel;
     }
 
+    @Override
+    public ItemModel getItemByIdInCache(Integer id) {
+        ItemModel itemModel = (ItemModel) redisTemplate.opsForValue().get("item_validate_" + id);
+        if (itemModel == null) {
+            //从数据库里查找
+            itemModel = this.getItemById(id);
+            redisTemplate.opsForValue().set("item_validate_" + id, itemModel);
+            //设置缓存有效期
+            redisTemplate.expire("item_validate_" + id, 10, TimeUnit.MINUTES);
+        }
+        return itemModel;
+    }
+
     @Transactional
     @Override
     public boolean decreaceStock(Integer itemId, Integer amount) {
-        int affectedRow = itemStockDOMapper.decreaceStock(amount, itemId);
-        if (affectedRow > 0) {
+        //通过更新redis的方式扣减库存
+//        int affectedRow = itemStockDOMapper.decreaceStock(amount, itemId);
+        long result = redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue() * -1);
+        if (result >= 0) {
+            boolean mqResult = producer.asyncReduceStock(itemId, amount);
+            if (!mqResult) {
+                //发送消息失败
+                redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue());
+                return false;
+            }
             return true;
         } else {
+            redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue());
             return false;
         }
     }

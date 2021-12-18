@@ -6,6 +6,7 @@ import com.miaosha.error.EmBusinessError;
 import com.miaosha.response.CommonReturnType;
 import com.miaosha.service.CacheService;
 import com.miaosha.service.ItemService;
+import com.miaosha.service.PromoService;
 import com.miaosha.service.impl.ItemServiceImpl;
 import com.miaosha.service.model.ItemModel;
 import org.joda.time.DateTime;
@@ -40,6 +41,9 @@ public class ItemController extends BaseController {
     private CacheService cacheService;
 
     @Autowired
+    private PromoService promoService;
+
+    @Autowired
     RedisTemplate redisTemplate;
 
     @RequestMapping(value = "/create", method = RequestMethod.POST, consumes = CONTENT_TYPE_FORMED)
@@ -63,6 +67,13 @@ public class ItemController extends BaseController {
         ItemVO itemVO = convertFromItemModel(itemModelForReturn);
 
         return CommonReturnType.create(itemVO);
+    }
+
+    @RequestMapping(value = "/publishpromo", method = RequestMethod.GET)
+    @ResponseBody
+    public CommonReturnType publishPromo(@RequestParam(name = "id") Integer id) {
+        promoService.publishPromo(id);
+        return CommonReturnType.create(null);
     }
 
     // 商品详情页浏览

@@ -20,7 +20,7 @@ public class CacheServieImpl implements CacheService {
                 .initialCapacity(10)
                 //设置缓存最大容量，超过最大值lru算法移除
                 .maximumSize(100)
-                //设置写缓存后多少秒国企
+                //设置写缓存后多少秒过期
                 .expireAfterWrite(60, TimeUnit.SECONDS).build();
 
     }
