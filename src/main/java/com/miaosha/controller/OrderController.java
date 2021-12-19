@@ -3,7 +3,9 @@ package com.miaosha.controller;
 import com.alibaba.druid.util.StringUtils;
 import com.miaosha.error.BusinessException;
 import com.miaosha.error.EmBusinessError;
+import com.miaosha.mq.MqProducer;
 import com.miaosha.response.CommonReturnType;
+import com.miaosha.service.ItemService;
 import com.miaosha.service.OrderService;
 import com.miaosha.service.model.UserModel;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,10 +24,16 @@ public class OrderController extends BaseController {
     OrderService orderService;
 
     @Autowired
+    private ItemService itemService;
+
+    @Autowired
     HttpServletRequest httpServletRequest;
 
     @Autowired
     private RedisTemplate redisTemplate;
+
+    @Autowired
+    private MqProducer mqProducer;
 
     // 封装下单请求
     @RequestMapping(value = "/createOrder", method = RequestMethod.POST, consumes = CONTENT_TYPE_FORMED)
@@ -47,8 +55,15 @@ public class OrderController extends BaseController {
         // 执行相应的service
         UserModel userModel = (UserModel) httpServletRequest.getSession().getAttribute("LOGIN_USER");*/
 
-        orderService.createOrder(userModel.getId(), promoId, itemId, amount);
+//        orderService.createOrder(userModel.getId(), promoId, itemId, amount);
 
+        //加入库存操作流水init状态
+        String stockLogId = itemService.initStockLog(itemId, amount);
+
+        boolean result = mqProducer.asyncTransactionReduceStock(userModel.getId(), promoId, itemId, amount, stockLogId);
+        if (!result) {
+            throw new BusinessException(EmBusinessError.UNKNOWN_ERROR, "下单失败");
+        }
         return CommonReturnType.create(null);
     }
 }

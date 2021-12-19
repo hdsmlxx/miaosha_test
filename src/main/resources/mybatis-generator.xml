@@ -52,11 +52,9 @@
         <!--<table tableName="order_info" domainObjectName="OrderDO" enableCountByExample="false"
                enableUpdateByExample="false" enableDeleteByExample="false" enableSelectByExample="false"
                selectByExampleQueryId="false"></table>-->
-<!--
-        <table tableName="promo" domainObjectName="PromoDO" enableCountByExample="false"
+        <table tableName="stock_log" domainObjectName="StockLogDO" enableCountByExample="false"
                enableUpdateByExample="false" enableDeleteByExample="false" enableSelectByExample="false"
                selectByExampleQueryId="false"></table>
--->
 
     </context>
 </generatorConfiguration>

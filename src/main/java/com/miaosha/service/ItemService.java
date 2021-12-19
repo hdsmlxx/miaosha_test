@@ -23,10 +23,42 @@ public interface ItemService {
      */
     ItemModel getItemByIdInCache(Integer id);
 
-    // 库存扣减
+    /**
+     * 初始化库存流水
+     * @param itemId
+     * @param amount
+     */
+    String initStockLog(Integer itemId, Integer amount);
+
+    /**
+     * 库存扣减
+     * @param itemId
+     * @param amount
+     * @return
+     */
     boolean decreaceStock(Integer itemId, Integer amount);
 
-    // 增加销量
+    /**
+     * 回补库存
+     * @param itemId
+     * @param amount
+     * @return
+     */
+    boolean increaseStock(Integer itemId, Integer amount);
+
+    /**
+     * 异步更新库存
+     * @param itemId
+     * @param amount
+     * @return
+     */
+    boolean asyndecreaseStock(Integer itemId, Integer amount);
+
+    /**
+     * 增加销量
+     * @param itemId
+     * @param amount
+     */
     void increaseSales(Integer itemId, Integer amount);
 
 }

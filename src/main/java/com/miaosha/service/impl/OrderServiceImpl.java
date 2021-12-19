@@ -2,8 +2,10 @@ package com.miaosha.service.impl;
 
 import com.miaosha.dao.OrderDOMapper;
 import com.miaosha.dao.SequenceDOMapper;
+import com.miaosha.dao.StockLogDOMapper;
 import com.miaosha.dataobject.OrderDO;
 import com.miaosha.dataobject.SequenceDO;
+import com.miaosha.dataobject.StockLogDO;
 import com.miaosha.error.BusinessException;
 import com.miaosha.error.EmBusinessError;
 import com.miaosha.mq.MqProducer;
@@ -18,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -39,11 +43,14 @@ public class OrderServiceImpl implements OrderService {
     private SequenceDOMapper sequenceDOMapper;
 
     @Autowired
+    private StockLogDOMapper stockLogDOMapper;
+
+    @Autowired
     private MqProducer producer;
 
     @Override
     @Transactional
-    public OrderModel createOrder(Integer userId, Integer promoId, Integer itemId, Integer amount) throws BusinessException {
+    public OrderModel createOrder(Integer userId, Integer promoId, Integer itemId, Integer amount, String stockLogId) throws BusinessException {
         // 校验下单状态：商品是否存在，用户是否合法，购买数量是否正确
 //        ItemModel itemModel = itemService.getItemById(itemId);
 
@@ -73,7 +80,7 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        // 落单前减库存
+        // 落单前减库存(redis中的库存)
         boolean result = itemService.decreaceStock(itemId, amount);
         if (!result) {
             throw new BusinessException(EmBusinessError.STOCK_NOT_ENOUGH);
@@ -100,12 +107,29 @@ public class OrderServiceImpl implements OrderService {
         // 增加商品销量
         itemService.increaseSales(itemId, amount);
 
-        // 返回前端
+        StockLogDO stockLogDO = stockLogDOMapper.selectByPrimaryKey(stockLogId);
+        if (stockLogDO == null) {
+            throw new BusinessException(EmBusinessError.UNKNOWN_ERROR);
+        }
+        stockLogDO.setStatus(2);
+        stockLogDOMapper.updateByPrimaryKeySelective(stockLogDO);
 
+        /*TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                //异步奉新库存（数据库库存）
+                boolean mqResult = itemService.asyndecreaseStock(itemId, amount);
+            }
+        });*/
+
+        // 返回前端
         return orderModel;
     }
 
-    // 无论外部的事务执行成功与否，本代码块执行后包含的事务都会被提交
+    /**
+     * 无论外部的事务执行成功与否，本代码块执行后包含的事务都会被提交
+     * @return
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String generateOrderNo() {
         // 共16位
