@@ -173,7 +173,10 @@ public class ItemServiceImpl implements ItemService {
 //        int affectedRow = itemStockDOMapper.decreaceStock(amount, itemId);
 
         long result = redisTemplate.opsForValue().increment("promo_item_stock_" + itemId, amount.intValue() * -1);
-        if (result >= 0) {
+        if (result > 0) {
+            return true;
+        } else if (result == 0) {
+            redisTemplate.opsForValue().set("item_stock_invalid_" + itemId, "true");
             return true;
         } else {
             this.increaseStock(itemId, amount);
