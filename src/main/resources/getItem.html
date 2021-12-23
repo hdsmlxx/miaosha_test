@@ -88,29 +88,60 @@
                 window.location.href = "./login.html";
                 return false;
             }
+            //获取秒杀令牌请求
             $.ajax({
                 type:"POST",
                 contentType:"application/x-www-form-urlencoded",
-                url:"http://" + g_host + "/order/createOrder?token=" + token,
+                url:"http://" + g_host + "/order/generatePromoToken?token=" + token,
                 data:{
-                    "itemId":getParam("id"),
-                    "amount":1,
-                    "promoId":g_itemVO.promoId,
+                    "itemId":g_itemVO.id,
+                    "promoId":g_itemVO.promoId
                 },
                 xhrFields:{withCredentials:true},
                 success:function (data) {
                     if (data.status == "success") {
-                        alert("下单成功！");
-                        window.location.reload();
+                        var promoToken = data.data;
+                        $.ajax({
+                            type:"POST",
+                            contentType:"application/x-www-form-urlencoded",
+                            url:"http://" + g_host + "/order/createOrder?token=" + token,
+                            data:{
+                                "itemId":getParam("id"),
+                                "amount":1,
+                                "promoId":g_itemVO.promoId,
+                                "promoToken":promoToken
+                            },
+                            xhrFields:{withCredentials:true},
+                            success:function (data) {
+                                if (data.status == "success") {
+                                    alert("下单成功！");
+                                    window.location.reload();
+                                } else {
+                                    alert("下单失败1，原因为" + data.data.errMsg);
+                                    if (data.data.errCode == 20003) {
+                                        window.location.href = "login.html";
+                                    }
+                                }
+                            },
+                            error:function (data) {
+                                alert("下单失败2，原因为" + data.responseText);
+                                if (data.data.errCode == 20003) {
+                                    window.location.href = "login.html";
+                                }
+                            }
+                        });
                     } else {
-                        alert("下单失败1，原因为" + data.data.errMsg);
+                        alert("获取令牌失败1，原因为" + data.data.errMsg);
                     }
                 },
                 error:function (data) {
-                    alert("下单失败2，原因为" + data.responseText);
+                    alert("获取令牌失败2，原因为" + data.responseText);
                 }
             });
+
         });
+
+        //获取商品详情信息请求
         $.ajax({
             type:"GET",
             contentType:"application/x-www-form-urlencoded",

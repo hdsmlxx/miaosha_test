@@ -60,17 +60,18 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(EmBusinessError.ITEM_NOT_EXIST);
         }
 
+/*
 //        UserModel userModel = userService.getUserById(userId);
         UserModel userModel = userService.getUserByIdInCache(userId);
         if (userModel == null) {
             throw new BusinessException(EmBusinessError.USER_NOT_EXIST);
-        }
+        }*/
 
         if (amount <= 0 || amount > 99) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "购买数量信息不正确");
         }
 
-        //校验活动信息
+        /*//校验活动信息
         if (promoId != null && itemModel.getPromoModel() != null) {
             //(1)校验对应活动是否存在这个适用商品
             if (promoId.intValue() != itemModel.getPromoModel().getId()) {
@@ -78,7 +79,7 @@ public class OrderServiceImpl implements OrderService {
             } else if (itemModel.getPromoModel().getStatus().intValue() != 2) {
                 throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "活动状态不对");
             }
-        }
+        }*/
 
         // 落单前减库存(redis中的库存)
         boolean result = itemService.decreaceStock(itemId, amount);

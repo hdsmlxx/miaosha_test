@@ -8,7 +8,8 @@ public enum EmBusinessError implements CommonError {
 
     //20000开头为用户信息错误
     USER_NOT_EXIST(20001, "用户不存在"),
-    USER_LOGIN_FAIL(20001, "用户名或密码错误"),
+    USER_LOGIN_FAIL(20002, "用户名或密码错误"),
+    USER_NOT_LOGIN(20003, "用户未登录"),
 
     // 30000开头为商品信息错误
     ITEM_NOT_EXIST(30001, "商品不存在"),

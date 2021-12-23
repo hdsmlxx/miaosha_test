@@ -10,4 +10,11 @@ public interface PromoService {
      * @param id
      */
     void publishPromo(Integer id);
+
+    /**
+     * 生成活动令牌
+     * @param promoId
+     * @return
+     */
+    String generateSecondKillToken(Integer promoId, Integer itemId, Integer userId);
 }
