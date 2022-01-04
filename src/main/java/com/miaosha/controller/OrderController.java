@@ -1,6 +1,7 @@
 package com.miaosha.controller;
 
 import com.alibaba.druid.util.StringUtils;
+import com.google.common.util.concurrent.RateLimiter;
 import com.miaosha.error.BusinessException;
 import com.miaosha.error.EmBusinessError;
 import com.miaosha.mq.MqProducer;
@@ -51,9 +52,12 @@ public class OrderController extends BaseController {
     
     private ExecutorService executorService;
 
+    private RateLimiter orderCreateRateLimiter;
+
     @PostConstruct
     public void init() {
         executorService = Executors.newFixedThreadPool(20);
+        orderCreateRateLimiter = RateLimiter.create(100);
     }
 
     @RequestMapping(value = "/generateVerifyCode", method = {RequestMethod.POST, RequestMethod.GET})
@@ -91,6 +95,15 @@ public class OrderController extends BaseController {
         if (userModel == null) {
             throw new BusinessException(EmBusinessError.USER_NOT_LOGIN);
         }
+
+        //校验验证码
+        String redisVerifyCode = (String) redisTemplate.opsForValue().get("verify_code_" + userModel.getId());
+        if (StringUtils.isEmpty(redisVerifyCode)) {
+            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "没有生成对应的验证码");
+        }
+        if (!redisVerifyCode.equalsIgnoreCase(verifyCode)) {
+            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "验证码错误");
+        }
         String promoToken = promoService.generateSecondKillToken(promoId, itemId, userModel.getId());
         if (promoToken == null) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "生成令牌错误");
@@ -113,6 +126,11 @@ public class OrderController extends BaseController {
                                         @RequestParam(name = "amount") Integer amount,
                                         @RequestParam(name = "promoId", required = false) Integer promoId,
                                         @RequestParam(name = "promoToken", required = false) String promoToken) throws BusinessException {
+
+        //获取令牌
+        if (!orderCreateRateLimiter.tryAcquire()) {
+            throw new BusinessException(EmBusinessError.ORDER_CREATE_FAIL);
+        }
 
         // 判断用户是否登录
         String token = httpServletRequest.getParameterMap().get("token")[0];

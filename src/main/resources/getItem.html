@@ -66,6 +66,13 @@
                 下单
             </button>
         </div>
+        <div id="verifyDiv" style="display: none" class="form-actions">
+            <img src=""/>
+            <input id="verifyContent" type="text" value=""/>
+            <button class="btn blue" id="verifyButton" type="submit">
+                验证
+            </button>
+        </div>
     </div>
 </body>
 
@@ -88,6 +95,18 @@
                 window.location.href = "./login.html";
                 return false;
             }
+            $("#verifyDiv img").attr("src", "http://" + g_host + "/order/generateVerifyCode?token=" + token);
+            $("#verifyDiv").show();
+
+
+        });
+        $("#verifyButton").on("click", function () {
+            var token = window.localStorage["token"];
+            if (token == null) {
+                alert("用户未登录");
+                window.location.href = "./login.html";
+                return false;
+            }
             //获取秒杀令牌请求
             $.ajax({
                 type:"POST",
@@ -95,7 +114,8 @@
                 url:"http://" + g_host + "/order/generatePromoToken?token=" + token,
                 data:{
                     "itemId":g_itemVO.id,
-                    "promoId":g_itemVO.promoId
+                    "promoId":g_itemVO.promoId,
+                    "verifyCode":$("#verifyContent").val()
                 },
                 xhrFields:{withCredentials:true},
                 success:function (data) {
@@ -138,7 +158,6 @@
                     alert("获取令牌失败2，原因为" + data.responseText);
                 }
             });
-
         });
 
         //获取商品详情信息请求
